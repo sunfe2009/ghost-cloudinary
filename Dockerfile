@@ -3,7 +3,7 @@ FROM ghost:5-alpine as builder
 RUN apk add --no-cache g++ make python3
 
 # 锁定兼容版本 (Ghost 5.x 需使用 2.1.x 版本)
-RUN su-exec node yarn add ghost-storage-cloudinary@2.1.2 cloudinary@1.40.0
+RUN su-exec node yarn add ghost-storage-cloudinary cloudinary
 
 # ---
 FROM ghost:5-alpine
