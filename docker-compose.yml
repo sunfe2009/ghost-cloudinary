@@ -1,0 +1,19 @@
+version: "3.8"
+services:
+  ghost:
+    image: test
+    container_name: ghost_test
+    restart: always
+    environment:
+      database__client: mysql
+      database__connection__host: ${AIVEN_MYSQL_HOST}
+      database__connection__port: ${AIVEN_MYSQL_PORT}
+      database__connection__user: ${AIVEN_MYSQL_USER}
+      database__connection__password: ${AIVEN_MYSQL_PASSWORD}
+      database__connection__database: ${AIVEN_MYSQL_DATABASE}
+      url: https://${GHOST_HOST}
+      CLOUDINARY_URL: ${CLOUDINARY_URL}
+    volumes:
+      - ghost_test:/var/lib/ghost/content
+volumes:
+  ghost_test:
