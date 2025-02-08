@@ -15,10 +15,11 @@ services:
       database__connection__database: ${AIVEN_MYSQL_DATABASE}
       url: https://${GHOST_HOST}
       CLOUDINARY_URL: ${CLOUDINARY_URL}
+
     volumes:
-      - ghost_test:/var/lib/ghost/content
-
-
+      # 修正后的挂载方式
+      - ghost_test:/var/lib/ghost/content/data
+      - ghost_test:/var/lib/ghost/content/images
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.ghost.rule=Host(`${GHOST_HOST}`)"
