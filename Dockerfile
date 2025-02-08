@@ -21,9 +21,3 @@ RUN set -ex; \
     su-exec node ghost config storage.ghost-storage-cloudinary.upload.unique_filename false; \
     su-exec node ghost config storage.ghost-storage-cloudinary.upload.overwrite false; \
     su-exec node ghost config storage.ghost-storage-cloudinary.checksums match; \
-
-# 配置内容 - persist 目录映射到本地
-COPY ../files/ghost_test_persist:/var/lib/ghost/content-persist
-
-# 配置构建所需的插件目录映射
-COPY ../files/ghost_test_persist:/var/lib/ghost/content-adapters/storage/ghost-storage-cloudinary
