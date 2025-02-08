@@ -1,24 +1,29 @@
-# Dockerfile
-# 使用多阶段构建确保路径准确性
-FROM ghost:5-alpine as builder
+# 使用官方 Ghost 镜像作为基础镜像
+FROM ghost:5-alpine as cloudinary
 
-# 安装构建依赖
+# 安装构建工具
 RUN apk add --no-cache g++ make python3
 
-# 在构建阶段明确设置工作目录
-WORKDIR /var/lib/ghost
+# 安装 ghost-storage-cloudinary 插件
+RUN su-exec node yarn add ghost-storage-cloudinary@latest
 
-# 安装插件到正确路径（注意使用绝对路径）
-RUN su-exec node yarn add ghost-storage-cloudinary@latest && \
-    mkdir -p /var/lib/ghost/current/content/adapters/storage && \
-    cp -r node_modules/ghost-storage-cloudinary /var/lib/ghost/current/content/adapters/storage/
-
-# 最终镜像
+# 创建最终的 Ghost 镜像
 FROM ghost:5-alpine
 
-# 从构建阶段复制适配器
-COPY --chown=node:node --from=builder /var/lib/ghost/current/content/adapters/storage/ghost-storage-cloudinary /var/lib/ghost/current/content/adapters/storage/
+# 从构建阶段复制插件到目标镜像
+COPY --chown=node:node --from=cloudinary /var/lib/ghost/node_modules /var/lib/ghost/node_modules
+COPY --chown=node:node --from=cloudinary /var/lib/ghost/node_modules/ghost-storage-cloudinary /
 
-# 配置存储适配器（环境变量优先）
+# 设置 Ghost 配置
 RUN set -ex; \
-    su-exec node ghost config storage.active ghost-storage-cloudinary
+    su-exec node ghost config storage.active ghost-storage-cloudinary; \
+    su-exec node ghost config storage.ghost-storage-cloudinary.upload.use_filename true; \
+    su-exec node ghost config storage.ghost-storage-cloudinary.upload.unique_filename false; \
+    su-exec node ghost config storage.ghost-storage-cloudinary.upload.overwrite false; \
+    su-exec node ghost config storage.ghost-storage-cloudinary.checksums match; \
+
+# 配置内容 - persist 目录映射到本地
+COPY ../files/ghost_test_persist:/var/lib/ghost/content-persist
+
+# 配置构建所需的插件目录映射
+COPY ../files/ghost_test_persist:/var/lib/ghost/content-adapters/storage/ghost-storage-cloudinary
