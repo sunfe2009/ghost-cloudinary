@@ -18,8 +18,8 @@ services:
 
     volumes:
       # 修正后的挂载方式
-      - ghost_test:/var/lib/ghost/content/data
-      - ghost_test:/var/lib/ghost/content/images
+      - ghost_test_data:/var/lib/ghost/content/data
+      - ghost_test_images:/var/lib/ghost/content/images
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.ghost.rule=Host(`${GHOST_HOST}`)"
@@ -29,4 +29,5 @@ services:
       - "traefik.http.routers.ghost.middlewares=set-x-forwarded-proto@file"
 
 volumes:
-  ghost_test:
+  ghost_test_data:
+  ghost_test_images:
