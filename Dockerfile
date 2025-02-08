@@ -1,13 +1,13 @@
-FROM ghost:5-alpine as builder
+FROM ghost:5.100.0-alpine as builder
 
 # 安装构建依赖
 RUN apk add --no-cache g++ make python3
 
 # 明确安装适配器及其依赖
-RUN su-exec node yarn add ghost-storage-cloudinary@2.1.2 cloudinary@latest
+RUN su-exec node yarn add ghost-storage-cloudinary@latest cloudinary@latest
 
 # ---
-FROM ghost:5-alpine
+FROM ghost:5.100.0-alpine
 
 # 设置环境变量
 ENV GHOST_INSTALL /var/lib/ghost
