@@ -1,7 +1,9 @@
 version: "3.8"
 services:
   ghost:
-    image: test
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: ghost_test
     restart: always
     environment:
