@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: ghost_test
+    container_name: ghost_test 
     restart: always
     environment:
       database__client: mysql
@@ -14,14 +14,12 @@ services:
       database__connection__database: ${AIVEN_MYSQL_DATABASE}
       url: https://${GHOST_HOST}
       CLOUDINARY_URL: ${CLOUDINARY_URL}
-
+    # 修正卷挂载配置（关键修复）
     volumes:
-      # 限制挂载范围，避免覆盖关键目录
-      - ghost_test_data:/var/lib/ghost/content/data
-      - ghost_test_images:/var/lib/ghost/content/images
-      # 添加适配器目录的匿名卷
-      - /var/lib/ghost/current/core/server/adapters/storage
-      
+      - ghost_data:/var/lib/ghost/content
+      - ghost_content_persist:/var/lib/ghost/content-persist
+    # 添加用户映射（重要）
+    user: "node" 
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.ghost.rule=Host(`${GHOST_HOST}`)"
@@ -31,5 +29,5 @@ services:
       - "traefik.http.routers.ghost.middlewares=set-x-forwarded-proto@file"
 
 volumes:
-  ghost_test_data:
-  ghost_test_images:
+  ghost_data:
+  ghost_content_persist:

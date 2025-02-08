@@ -1,31 +1,38 @@
-# 使用官方 Ghost 镜像作为基础镜像
-FROM ghost:5-alpine as cloudinary
+# 构建阶段
+FROM ghost:5-alpine as builder
 
-# 安装构建工具
+# 安装系统依赖
 RUN apk add --no-cache g++ make python3
 
-# 设置工作目录
+# 在官方镜像的正确位置安装插件
 WORKDIR /var/lib/ghost/current
+RUN su-exec node yarn add ghost-storage-cloudinary@latest
 
-# 安装插件并显式创建适配器目录
-RUN set -ex; \
-    su-exec node yarn add ghost-storage-cloudinary@latest; \
-    mkdir -p /var/lib/ghost/current/core/server/adapters/storage; \
-    ln -sf /var/lib/ghost/current/node_modules/ghost-storage-cloudinary /var/lib/ghost/current/core/server/adapters/storage/cloudinary
+# 创建持久化目录结构（新增目录验证）
+RUN mkdir -p /var/lib/ghost/content-persist/adapters/storage && \
+    ln -sf /var/lib/ghost/current/node_modules/ghost-storage-cloudinary \
+        /var/lib/ghost/content-persist/adapters/storage/cloudinary && \
+    # 验证构建产物
+    ls -l /var/lib/ghost/content-persist/adapters/storage
 
-# 创建最终的 Ghost 镜像
+# 最终镜像
 FROM ghost:5-alpine
 
-# 复制插件和适配器配置
-COPY --chown=node:node --from=cloudinary /var/lib/ghost/current/node_modules/ghost-storage-cloudinary /var/lib/ghost/current/node_modules/ghost-storage-cloudinary
-COPY --chown=node:node --from=cloudinary /var/lib/ghost/current/core/server/adapters/storage/cloudinary /var/lib/ghost/current/core/server/adapters/storage/cloudinary
+# 复制构建产物（修正目标路径）
+COPY --chown=node:node --from=builder \
+    /var/lib/ghost/content-persist/adapters \
+    /var/lib/ghost/content-persist/
 
-# 配置存储适配器（使用持久化路径）
+# 配置存储适配器（写入持久化目录）
 RUN set -ex; \
-    su-exec node ghost config storage.active cloudinary; \
-    su-exec node ghost config storage.cloudinary.upload.use_filename true; \
-    su-exec node ghost config storage.cloudinary.upload.unique_filename false; \
-    su-exec node ghost config storage.cloudinary.upload.overwrite false
+    mkdir -p /var/lib/ghost/content-persist/config && \
+    ghost config --dir /var/lib/ghost/content-persist \
+        storage.active cloudinary && \
+    ghost config --dir /var/lib/ghost/content-persist \
+        storage.cloudinary.upload.use_filename true
 
-# 验证路径
-RUN ls -l /var/lib/ghost/current/core/server/adapters/storage
+# 启动脚本解决路径冲突
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["node", "current/index.js"]
