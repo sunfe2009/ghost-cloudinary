@@ -4,32 +4,28 @@ FROM ghost:5-alpine as cloudinary
 # 安装构建工具
 RUN apk add --no-cache g++ make python3
 
-# 明确设置工作目录（关键修复）
+# 设置工作目录
 WORKDIR /var/lib/ghost/current
 
-# 安装 ghost-storage-cloudinary 插件最新版（使用完整路径）
-RUN su-exec node yarn add --prefix /var/lib/ghost/current ghost-storage-cloudinary@latest
+# 安装插件并显式创建适配器目录
+RUN set -ex; \
+    su-exec node yarn add ghost-storage-cloudinary@latest; \
+    mkdir -p /var/lib/ghost/current/core/server/adapters/storage; \
+    ln -sf /var/lib/ghost/current/node_modules/ghost-storage-cloudinary /var/lib/ghost/current/core/server/adapters/storage/cloudinary
 
 # 创建最终的 Ghost 镜像
 FROM ghost:5-alpine
 
-# 从构建阶段复制插件到目标镜像（修正源路径）
+# 复制插件和适配器配置
 COPY --chown=node:node --from=cloudinary /var/lib/ghost/current/node_modules/ghost-storage-cloudinary /var/lib/ghost/current/node_modules/ghost-storage-cloudinary
+COPY --chown=node:node --from=cloudinary /var/lib/ghost/current/core/server/adapters/storage/cloudinary /var/lib/ghost/current/core/server/adapters/storage/cloudinary
 
-# 设置 Ghost 配置
+# 配置存储适配器（使用持久化路径）
 RUN set -ex; \
-    # 强制创建配置目录
-    mkdir -p /var/lib/ghost/content/adapters/storage && \
-    # 创建符号链接
-    ln -sf /var/lib/ghost/current/node_modules/ghost-storage-cloudinary /var/lib/ghost/content/adapters/storage/cloudinary; \
-    # 写入配置
     su-exec node ghost config storage.active cloudinary; \
     su-exec node ghost config storage.cloudinary.upload.use_filename true; \
     su-exec node ghost config storage.cloudinary.upload.unique_filename false; \
-    su-exec node ghost config storage.cloudinary.upload.overwrite false; \
-    su-exec node ghost config storage.cloudinary.fetch.quality auto; \
-    su-exec node ghost config storage.cloudinary.fetch.cdn_subdomain true; \
-    # 调试步骤（添加路径验证）
-    echo "验证插件路径:"; \
-    ls -l /var/lib/ghost/current/node_modules/ghost-storage-cloudinary/package.json; \
-    ls -l /var/lib/ghost/content/adapters/storage/cloudinary
+    su-exec node ghost config storage.cloudinary.upload.overwrite false
+
+# 验证路径
+RUN ls -l /var/lib/ghost/current/core/server/adapters/storage

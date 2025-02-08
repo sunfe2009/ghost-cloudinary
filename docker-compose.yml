@@ -16,9 +16,12 @@ services:
       CLOUDINARY_URL: ${CLOUDINARY_URL}
 
     volumes:
-      # 修正后的挂载方式
+      # 限制挂载范围，避免覆盖关键目录
       - ghost_test_data:/var/lib/ghost/content/data
       - ghost_test_images:/var/lib/ghost/content/images
+      # 添加适配器目录的匿名卷
+      - /var/lib/ghost/current/core/server/adapters/storage
+      
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.ghost.rule=Host(`${GHOST_HOST}`)"
