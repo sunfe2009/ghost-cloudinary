@@ -1,24 +1,28 @@
-# 使用官方 Ghost 镜像作为基础镜像
 FROM ghost:5-alpine as cloudinary
 
-# 安装构建工具
 RUN apk add --no-cache g++ make python3
-
-# 安装 ghost-storage-cloudinary 插件
 RUN su-exec node yarn add ghost-storage-cloudinary@latest
 
-# 创建最终的 Ghost 镜像
+# ---
 FROM ghost:5-alpine
 
-# 从构建阶段复制插件到目标镜像
-COPY --chown=node:node --from=cloudinary /var/lib/ghost/node_modules /var/lib/ghost/node_modules
-COPY --chown=node:node --from=cloudinary /var/lib/ghost/node_modules/ghost-storage-cloudinary /var/lib/ghost/content/adapters/storage/ghost-storage-cloudinary
+ENV GHOST_INSTALL /var/lib/ghost
 
-# 设置 Ghost 配置
+# 复制插件
+COPY --chown=node:node --from=cloudinary $GHOST_INSTALL/node_modules/ghost-storage-cloudinary $GHOST_INSTALL/content/adapters/storage/ghost-storage-cloudinary
+
+# 通过 Ghost CLI 配置所有参数
 RUN set -ex; \
+    # 核心配置
+    su-exec node ghost config url "https://\${GHOST_HOST}"; \
+    su-exec node ghost config server.host '::'; \
+    # 存储配置
     su-exec node ghost config storage.active ghost-storage-cloudinary; \
     su-exec node ghost config storage.ghost-storage-cloudinary.upload.use_filename true; \
     su-exec node ghost config storage.ghost-storage-cloudinary.upload.unique_filename false; \
     su-exec node ghost config storage.ghost-storage-cloudinary.upload.overwrite false; \
-    su-exec node ghost config storage.ghost-storage-cloudinary.fetch.quality auto; \
-    su-exec node ghost config storage.ghost-storage-cloudinary.fetch.cdn_subdomain true
+    su-exec node ghost config storage.ghost-storage-cloudinary.upload.folder "my-blog"; \
+    su-exec node ghost config storage.ghost-storage-cloudinary.fetch.quality "auto"; \
+    su-exec node ghost config storage.ghost-storage-cloudinary.fetch.cdn_subdomain true; \
+    # 禁用图片优化
+    su-exec node ghost config imageOptimization.__disabled__ true;
