@@ -1,41 +1,24 @@
-FROM ghost:5-alpine as builder
+# Dockerfile
+# 使用官方 Ghost 镜像作为基础镜像
+FROM ghost:5-alpine as cloudinary
 
+# 安装构建工具（Alpine 系统使用 apk）
 RUN apk add --no-cache g++ make python3
 
-# 锁定兼容版本 (Ghost 5.x 需使用 2.1.x 版本)
-RUN su-exec node yarn add ghost-storage-cloudinary cloudinary
+# 安装 ghost-storage-cloudinary 插件到正确路径
+RUN su-exec node yarn add ghost-storage-cloudinary@latest && \
+    # 创建适配器存储目录
+    mkdir -p /var/lib/ghost/content/adapters/storage && \
+    # 移动插件到标准适配器目录
+    cp -r node_modules/ghost-storage-cloudinary /var/lib/ghost/content/adapters/storage/
 
-# ---
+# 创建最终的 Ghost 镜像
 FROM ghost:5-alpine
 
-ENV GHOST_INSTALL /var/lib/ghost
+# 从构建阶段复制插件到目标镜像的标准适配器目录
+COPY --chown=node:node --from=cloudinary /var/lib/ghost/content/adapters/storage/ghost-storage-cloudinary /var/lib/ghost/content/adapters/storage/
 
-# 创建目标目录 (关键修复)
-RUN mkdir -p $GHOST_INSTALL/content/adapters/storage && \
-    chown node:node $GHOST_INSTALL/content/adapters/storage
-
-# 复制完整适配器及依赖
-COPY --chown=node:node --from=builder \
-    $GHOST_INSTALL/node_modules/ghost-storage-cloudinary \
-    $GHOST_INSTALL/content/adapters/storage/ghost-storage-cloudinary
-
-# 复制 cloudinary SDK 到全局 node_modules
-COPY --chown=node:node --from=builder \
-    $GHOST_INSTALL/node_modules/cloudinary \
-    $GHOST_INSTALL/node_modules/cloudinary
-
-# 配置路径和存储
+# 设置 Ghost 存储配置（使用环境变量覆盖更灵活）
 RUN set -ex; \
-    su-exec node ghost config paths.contentPath "$GHOST_INSTALL/content"; \
     su-exec node ghost config storage.active ghost-storage-cloudinary; \
-    su-exec node ghost config storage.ghost-storage-cloudinary.upload.use_filename true; \
-    su-exec node ghost config storage.ghost-storage-cloudinary.upload.unique_filename false; \
-    su-exec node ghost config imageOptimization.__disabled__ true; \
-    su-exec node ghost config storage.ghost-storage-cloudinary.upload.overwrite false; \
-    su-exec node ghost config storage.ghost-storage-cloudinary.fetch.quality auto; \
-    su-exec node ghost config storage.ghost-storage-cloudinary.fetch.cdn_subdomain true;
-
-    
-# 验证路径（生产环境可移除）
-RUN ls -l $GHOST_INSTALL/content/adapters/storage/ && \
-    ls -l $GHOST_INSTALL/node_modules/cloudinary/package.json
+    su-exec node ghost config storage.ghost-storage-cloudinary.upload.use_filename true
