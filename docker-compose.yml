@@ -5,33 +5,25 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: ghost_test
-    restart: always
+    restart: unless-stopped
     environment:
-      # 数据库配置
       database__client: mysql
       database__connection__host: ${AIVEN_MYSQL_HOST}
       database__connection__port: ${AIVEN_MYSQL_PORT}
       database__connection__user: ${AIVEN_MYSQL_USER}
       database__connection__password: ${AIVEN_MYSQL_PASSWORD}
       database__connection__database: ${AIVEN_MYSQL_DATABASE}
-      
-      # 站点配置
       url: https://${GHOST_HOST}
       
-      # Cloudinary 配置（推荐使用独立变量）
+      # 必须使用双下划线层级结构
       storage__active: ghost-storage-cloudinary
-      storage__ghost-storage-cloudinary__cloud_name: ${CLOUDINARY_CLOUD_NAME}
-      storage__ghost-storage-cloudinary__api_key: ${CLOUDINARY_API_KEY}
-      storage__ghost-storage-cloudinary__api_secret: ${CLOUDINARY_API_SECRET}
-      storage__ghost-storage-cloudinary__upload__use_filename: "true"
-      storage__ghost-storage-cloudinary__upload__unique_filename: "false"
-      storage__ghost-storage-cloudinary__upload__overwrite: "false"
+      storage__ghost_storage_cloudinary__cloud_name: ${CLOUDINARY_CLOUD_NAME}
+      storage__ghost_storage_cloudinary__api_key: ${CLOUDINARY_API_KEY}
+      storage__ghost_storage_cloudinary__api_secret: ${CLOUDINARY_API_SECRET}
 
     volumes:
-      # 调整挂载路径以避免覆盖适配器目录
-      - "../files/ghost_test_persist/uploads:/var/lib/ghost/content/uploads"  # 上传文件目录
-      - "../files/ghost_test_persist/images:/var/lib/ghost/content/images"    # 图片目录
-      - "../files/ghost_test_persist/data:/var/lib/ghost/content/data"        # 数据库文件
+      # 仅挂载需要持久化的内容目录
+      - "../files/ghost_test_persist/content:/var/lib/ghost/content"
 
     labels:
       - "traefik.enable=true"
