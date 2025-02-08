@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: ghost_test 
+    container_name: ghost_test
     restart: always
     environment:
       database__client: mysql
@@ -14,12 +14,9 @@ services:
       database__connection__database: ${AIVEN_MYSQL_DATABASE}
       url: https://${GHOST_HOST}
       CLOUDINARY_URL: ${CLOUDINARY_URL}
-    # 修正卷挂载配置（关键修复）
     volumes:
-      - ghost_data:/var/lib/ghost/content
-      - ghost_content_persist:/var/lib/ghost/content-persist
-    # 添加用户映射（重要）
-    user: "node" 
+      # 修改了 volume 挂载路径以确保数据持久性
+      - "../files/ghost_test_persist:/var/lib/ghost/content-persist"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.ghost.rule=Host(`${GHOST_HOST}`)"
@@ -28,6 +25,5 @@ services:
       - "traefik.http.services.ghost.loadbalancer.server.port=2368"
       - "traefik.http.routers.ghost.middlewares=set-x-forwarded-proto@file"
 
-volumes:
-  ghost_data:
-  ghost_content_persist:
+#   volumes:  # 注释掉 named volume 的定义，因为直接使用 bind mount
+#     ghost_test_persist:
