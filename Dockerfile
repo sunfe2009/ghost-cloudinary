@@ -1,29 +1,15 @@
-# Dockerfile 权限修正版
+# 使用官方 Ghost 镜像作为基础镜像
 FROM ghost:5-alpine as cloudinary
 
 # 安装构建工具
 RUN apk add --no-cache g++ make python3
 
-# 创建插件目录并设置权限
-RUN mkdir -p /var/lib/ghost/content/storage-adapters && \
-    chown -R node:node /var/lib/ghost/content/storage-adapters
+# 安装 ghost-storage-cloudinary 插件
+RUN su-exec node yarn add ghost-storage-cloudinary@latest
 
-# 以node用户安装插件
-USER node
-WORKDIR /var/lib/ghost/content/storage-adapters
-RUN yarn add ghost-storage-cloudinary@latest
-
-# 最终阶段修正版
+# 创建最终的 Ghost 镜像
 FROM ghost:5-alpine
 
-# 复制插件目录
-COPY --chown=node:node --from=cloudinary /var/lib/ghost/content/storage-adapters /var/lib/ghost/content/storage-adapters
-
-# 创建符号链接（修复路径问题）
-USER root
-RUN mkdir -p /var/lib/ghost/node_modules && \
-    ln -s /var/lib/ghost/content/storage-adapters/node_modules/ghost-storage-cloudinary /var/lib/ghost/node_modules/
-
-# 确保切回node用户
-USER node
-
+# 从构建阶段复制插件到目标镜像
+COPY --chown=node:node --from=cloudinary /var/lib/ghost/node_modules /var/lib/ghost/node_modules
+COPY --chown=node:node --from=cloudinary /var/lib/ghost/node_modules/ghost-storage-cloudinary /
