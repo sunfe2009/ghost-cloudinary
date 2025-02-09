@@ -12,4 +12,4 @@ FROM ghost:5-alpine
 
 # 从构建阶段复制插件到目标镜像
 COPY --chown=node:node --from=cloudinary /var/lib/ghost/node_modules /var/lib/ghost/node_modules
-COPY --chown=node:node --from=cloudinary /var/lib/ghost/node_modules/ghost-storage-cloudinary /
+COPY --chown=node:node --from=cloudinary /var/lib/ghost/node_modules/ghost-storage-cloudinary /var/lib/ghost/content/adapters/ghost-storage-cloudinary
