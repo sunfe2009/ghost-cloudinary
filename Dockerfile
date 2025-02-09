@@ -13,3 +13,7 @@ FROM ghost:5-alpine
 # 从构建阶段复制插件到目标镜像
 COPY --chown=node:node --from=cloudinary /var/lib/ghost/node_modules /var/lib/ghost/node_modules
 COPY --chown=node:node --from=cloudinary /var/lib/ghost/node_modules/ghost-storage-cloudinary /var/lib/ghost/content/adapters/ghost-storage-cloudinary
+
+# 调试命令：列出适配器目录内容
+RUN ls -la /var/lib/ghost/content/adapters/
+RUN ls -la /var/lib/ghost/versions/5.109.2/core/server/adapters/
