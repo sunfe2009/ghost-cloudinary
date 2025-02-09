@@ -15,15 +15,14 @@ services:
       database__connection__database: ${AIVEN_MYSQL_DATABASE}
       url: https://${GHOST_HOST}
       
-      # 必须使用双下划线层级结构
       storage__active: ghost-storage-cloudinary
       storage__ghost_storage_cloudinary__cloud_name: ${CLOUDINARY_CLOUD_NAME}
       storage__ghost_storage_cloudinary__api_key: ${CLOUDINARY_API_KEY}
       storage__ghost_storage_cloudinary__api_secret: ${CLOUDINARY_API_SECRET}
 
     volumes:
-      # 安全路径（避免覆盖 node_modules）
-      - "../files/ghost_test_persist/content:/var/lib/ghost/content:Z"
+-     - "../files/ghost_test_persist/content:/var/lib/ghost/content"
++     - "ghost_content:/var/lib/ghost/content"  # 使用命名卷
 
     labels:
       - "traefik.enable=true"
@@ -32,3 +31,12 @@ services:
       - "traefik.http.routers.ghost.tls=true"
       - "traefik.http.services.ghost.loadbalancer.server.port=2368"
       - "traefik.http.routers.ghost.middlewares=set-x-forwarded-proto@file"
+
+# 新增全局卷声明
++volumes:
++  ghost_content:
++    driver: local
++    driver_opts:
++      type: none
++      o: bind
++      device: /etc/dokploy/compose/${COMPOSE_PROJECT_NAME}/files/ghost_content  # Dokploy 标准路径
