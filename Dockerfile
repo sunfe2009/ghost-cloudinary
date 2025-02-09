@@ -1,26 +1,27 @@
-# Dockerfile 修改版（保留注释）
-
-# 使用官方 Ghost 镜像作为基础镜像
+# Dockerfile 权限修正版
 FROM ghost:5-alpine as cloudinary
 
 # 安装构建工具
 RUN apk add --no-cache g++ make python3
 
-# 安装 ghost-storage-cloudinary 插件到持久化目录
+# 创建插件目录并设置权限
 RUN mkdir -p /var/lib/ghost/content/storage-adapters && \
-    su-exec node yarn add ghost-storage-cloudinary@latest --modules-folder /var/lib/ghost/content/storage-adapters
+    chown -R node:node /var/lib/ghost/content/storage-adapters
 
-# 创建最终的 Ghost 镜像
+# 以node用户安装插件
+USER node
+WORKDIR /var/lib/ghost/content/storage-adapters
+RUN yarn add ghost-storage-cloudinary@latest
+
+# 最终阶段
 FROM ghost:5-alpine
 
-# 复制插件到持久化目录并创建符号链接
+# 复制插件目录
 COPY --chown=node:node --from=cloudinary /var/lib/ghost/content/storage-adapters /var/lib/ghost/content/storage-adapters
-RUN ln -s /var/lib/ghost/content/storage-adapters/ghost-storage-cloudinary /var/lib/ghost/node_modules/ghost-storage-cloudinary
 
-# 设置 Ghost 配置（保持原有配置）
-RUN set -ex; \
-    su-exec node ghost config storage.active ghost-storage-cloudinary; \
-    su-exec node ghost config storage.ghost-storage-cloudinary.upload.use_filename true; \
-    su-exec node ghost config storage.ghost-storage-cloudinary.upload.unique_filename false; \
-    su-exec node ghost config storage.ghost-storage-cloudinary.upload.overwrite false; \
-    su-exec node ghost config storage.ghost-storage-cloudinary.checksums match;
+# 创建符号链接
+USER root
+RUN ln -s /var/lib/ghost/content/storage-adapters/node_modules/ghost-storage-cloudinary /var/lib/ghost/node_modules/ghost-storage-cloudinary
+
+# 切换回node用户
+USER node
