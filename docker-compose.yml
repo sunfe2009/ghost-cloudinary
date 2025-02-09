@@ -22,7 +22,7 @@ services:
       storage__ghost_storage_cloudinary__api_secret: ${CLOUDINARY_API_SECRET}
 
     volumes:
-      # 仅挂载需要持久化的内容目录
+      # 安全路径（避免覆盖 node_modules）
       - "../files/ghost_test_persist/content:/var/lib/ghost/content"
 
     labels:
