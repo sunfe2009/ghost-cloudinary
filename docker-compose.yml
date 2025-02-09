@@ -23,7 +23,7 @@ services:
 
     volumes:
       # 安全路径（避免覆盖 node_modules）
-      - "../files/ghost_test_persist/content:/var/lib/ghost/content"
+      - "../files/ghost_test_persist/content:/var/lib/ghost/content:Z"
 
     labels:
       - "traefik.enable=true"
